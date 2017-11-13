@@ -154,13 +154,25 @@ public:
 
 	double Eval(const Eigen::Vector3d& _x)
 	{
+
 		// TODO: eval the RBF function based on the coefficents stored in m_coefficents
 		// the first m_numCenters entries contain the coefficients of the kernels (that can be evaluated using EvalBasis())
 		// the following parameters are the coeffients for the linear and the constant part
 		// the centers of the RBFs are the first m_numCenters sample points (use m_funcSamp.m_pos[i] to access them)
 		// hint: Eigen provides a norm() function to compute the l2-norm of a vector (e.g. see macro phi(i,j))
 		double result = 0.0;
-
+		Eigen::Vector3f y;
+		/*Eigen::Vector3f y = Eigen::Vector3f((float)(x.x()-p.x()), (float)(x.y() - p.y()), (float)(x.z() - p.z()));
+		double result = y.x()*n.x()+ y.y()*n.y()+ y.z()*n.z();*/
+		int i = 0;
+		for (i = 0; i < m_numCenters; i++)
+		{
+			y = Eigen::Vector3f((float)(_x.x() - m_funcSamp.m_pos[i].x()), (float)(_x.y() - m_funcSamp.m_pos[i].y()), (float)(_x.z() - m_funcSamp.m_pos[i].z()));
+			
+			result += m_coefficents[i] * EvalBasis(y.norm());
+		}
+		result += _x.x()*m_coefficents[i] + _x.y()*m_coefficents[i + 1] + _x.z()*m_coefficents[i + 2];
+		result += m_coefficents[i+3];
 
 		return result;
 	}
@@ -186,13 +198,24 @@ private:
 		// note that all sample points (both on and off surface points) are stored in m_funcSamp
 		// you can access matrix elements using for example A(i,j) for the i-th row and j-th column
 		// similar you access the elements of the vector b, e.g. b(i) for the i-th element
+		int m, n;// = 0;
+		for (m = 0; m < 2*m_numCenters; m++) // For each row
+		{
+			for (n = 0; n < m_numCenters; n++) // For each column up to n
+			{
+				A(m, n) = phi(m, n);
+			}
+			//For columns from n to n+4. 
+			A(m, n) = m_funcSamp.m_pos[m].x();
+			A(m, n+1) = m_funcSamp.m_pos[m].y();
+			A(m, n+2) = m_funcSamp.m_pos[m].z();
+			A(m, n+3) = 1; // Last column is set to 1
 
+			//For each row of b
+			b(m) = m_funcSamp.m_val[m];
+			//std::cout << "kacyasindasegmentyedik  " << m<<"  " <<n<<std::endl;
 
-
-
-
-
-
+		}
 
 		// build the system matrix and the right hand side of the normal equation
 		m_systemMatrix = A.transpose() * A;
